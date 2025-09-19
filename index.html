@@ -4,15 +4,45 @@
   <meta charset="UTF-8">
   <title>Колесо фортуны</title>
   <style>
-    body { text-align: center; font-family: Arial, sans-serif; background: #111; color: #fff; }
-    #wheel { width: 300px; height: 300px; border-radius: 50%; border: 10px solid #fff;
-             margin: 50px auto; position: relative; overflow: hidden; }
-    .segment { position: absolute; width: 50%; height: 50%; top: 50%; left: 50%;
-               transform-origin: 0% 0%; background: #444; color: #fff;
-               display: flex; align-items: center; justify-content: center;
-               font-size: 18px; }
-    button { padding: 12px 24px; margin-top: 20px; font-size: 16px;
-             border: none; border-radius: 8px; cursor: pointer; background: #ff9800; color: #fff; }
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+    }
+    #wheel {
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      border: 8px solid #fff;
+      margin: 50px auto;
+      position: relative;
+      overflow: hidden;
+      transform: rotate(0deg);
+      transition: transform 5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+    }
+    .segment {
+      width: 50%;
+      height: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform-origin: 0% 0%;
+      clip-path: polygon(0 0, 100% 0, 0 100%);
+      background-size: cover;
+      background-position: center;
+    }
+    button {
+      padding: 12px 24px;
+      margin-top: 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #ff9800;
+      color: #fff;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -23,43 +53,54 @@
   <script>
     const tg = window.Telegram.WebApp;
 
-    const prizes = ["⭐50", "⭐100", "Пусто", "⭐200", "⭐500", "Пусто"];
+    // картинки секторов — твои файлы
+    const images = [
+      "img/Снимок экрана 2025-04-30 в 23.08.05-Photoroom.png",
+      "img/Снимок экрана 2025-05-02 в 19.52.37-Photoroom.png",
+      "img/Снимок экрана 2025-04-30 в 23.03.10-Photoroom.png",
+      "img/Снимок экрана 2025-04-30 в 23.05.12-Photoroom.png",
+      "img/Снимок экрана 2025-04-30 в 22.58.50-Photoroom.png",
+      "img/Снимок экрана 2025-05-02 в 21.24.51-Photoroom.png"
+    ];
+
     const wheel = document.getElementById("wheel");
 
     // создаём сегменты
-    prizes.forEach((p, i) => {
+    images.forEach((src, i) => {
       const seg = document.createElement("div");
       seg.className = "segment";
-      seg.style.transform = `rotate(${i * (360 / prizes.length)}deg) skewY(${90 - 360 / prizes.length}deg)`;
-      seg.innerText = p;
-      seg.style.background = i % 2 ? "#e91e63" : "#3f51b5";
+      seg.style.transform = `rotate(${i * (360 / images.length)}deg) skewY(${90 - 360 / images.length}deg)`;
+      seg.style.backgroundImage = `url(${src})`;
       wheel.appendChild(seg);
     });
 
-    function spin() {
-      const deg = 720 + Math.floor(Math.random() * 360);
-      wheel.style.transition = "transform 4s ease-out";
-      wheel.style.transform = `rotate(${deg}deg)`;
-    }
+    let spinning = false;
 
     function requestSpin() {
+      if (spinning) return;
       if (tg && tg.sendData) {
-        tg.sendData("spin_request");
+        tg.sendData("spin_request"); // проверка у бота
       } else {
-        alert("⚠️ Открыть нужно через Telegram!");
+        spin(); // для тестов без Telegram
       }
     }
 
-    // слушаем ответы от бота
+    // ответ от бота
     Telegram.WebApp.onEvent("messageReceived", (msg) => {
       if (!msg.data) return;
       if (msg.data === "SPIN_OK") {
-        spin(); // запускаем колесо
+        spin();
       } else if (msg.data === "NO_STARS") {
-        alert("❌ Недостаточно ⭐ (нужно 100⭐)");
+        alert("❌ Недостаточно ⭐ (нужно 100⭐).");
       }
     });
+
+    function spin() {
+      spinning = true;
+      const randomDeg = 360 * 5 + Math.floor(Math.random() * 360);
+      wheel.style.transform = `rotate(${randomDeg}deg)`;
+      setTimeout(() => { spinning = false; }, 5000);
+    }
   </script>
 </body>
 </html>
-
