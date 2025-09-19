@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>🎰 Мини Казино</title>
+  <title>🌀 Колесо Фортуны</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
@@ -17,7 +17,19 @@
       height: 100vh;
     }
     h1 { font-size: 28px; margin-bottom: 20px; }
-    .slot { font-size: 48px; margin-bottom: 20px; }
+    canvas {
+      background: #111;
+      border-radius: 50%;
+      margin-bottom: 20px;
+    }
+    .arrow {
+      width: 0;
+      height: 0;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-bottom: 30px solid #ffcc00;
+      margin-bottom: -10px;
+    }
     button {
       background: #ffcc00;
       border: none;
@@ -27,28 +39,64 @@
       cursor: pointer;
       font-weight: bold;
     }
+    button:hover { background: #ffaa00; }
   </style>
 </head>
 <body>
-  <h1>🎰 Мини Казино</h1>
-  <div class="slot" id="slot">🍒 🍋 🍉</div>
-  <button onclick="spin()">Крутить барабан</button>
+  <h1>🌀 Колесо Фортуны</h1>
+  <div class="arrow"></div>
+  <canvas id="wheel" width="300" height="300"></canvas>
+  <button onclick="spin()">Крутить колесо</button>
 
   <script>
-    const symbols = ["🍒","🍋","🍉","⭐","💎","7️⃣"];
-    const slot = document.getElementById("slot");
+    const sectors = ["🍒", "🍋", "🍉", "⭐", "💎", "7️⃣"];
+    const colors = ["#f44336","#e91e63","#9c27b0","#2196f3","#009688","#4caf50"];
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
     const tg = window.Telegram?.WebApp;
 
+    let ang = 0; // текущий угол
+    const arc = 2 * Math.PI / sectors.length;
+
+    function drawWheel() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      sectors.forEach((s, i) => {
+        const angle = i * arc + ang;
+        ctx.beginPath();
+        ctx.fillStyle = colors[i];
+        ctx.moveTo(150,150);
+        ctx.arc(150,150,150,angle,angle+arc);
+        ctx.fill();
+
+        // текст
+        ctx.save();
+        ctx.translate(150,150);
+        ctx.rotate(angle + arc/2);
+        ctx.textAlign="right";
+        ctx.fillStyle="#fff";
+        ctx.font="24px Arial";
+        ctx.fillText(s, 120, 10);
+        ctx.restore();
+      });
+    }
+
+    drawWheel();
+
     function spin() {
-      const res = [
-        symbols[Math.floor(Math.random()*symbols.length)],
-        symbols[Math.floor(Math.random()*symbols.length)],
-        symbols[Math.floor(Math.random()*symbols.length)]
-      ];
-      slot.textContent = res.join(" ");
-      if (tg && tg.sendData) {
-        tg.sendData(JSON.stringify({ result: res }));
-      }
+      let spins = Math.floor(Math.random() * 30) + 30; // шаги
+      let step = Math.random() * 0.2 + 0.25; // скорость
+      const interval = setInterval(() => {
+        ang += step;
+        ang %= 2*Math.PI;
+        drawWheel();
+        spins--;
+        if (spins <= 0) {
+          clearInterval(interval);
+          const index = Math.floor(((2*Math.PI - ang) % (2*Math.PI)) / arc);
+          const result = sectors[index];
+          alert("🎉 Выпало: " + result);
+        }
+      }, 100);
     }
 
     if (tg) tg.expand();
